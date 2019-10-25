@@ -1,5 +1,7 @@
 package com.teamknowlogy.testapi.service;
 
+import java.util.List;
+
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,34 +16,70 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.teamknowlogy.testapi.business.Mutations;
 import com.teamknowlogy.testapi.dto.Secuence;
+import com.teamknowlogy.testapi.dto.SecuenceResult;
+import com.teamknowlogy.testapi.dto.Stat;
+import com.teamknowlogy.testapi.repository.SecuenceResultRepository;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.ApiResponse;
 
 @RestController
-@RequestMapping("/mutation")
+@RequestMapping("/")
 @Api(value = "main", description = "La API principal")
 public class WebService {
 
 	@Autowired
 	private Mutations mutations;
 
-	@ApiOperation(value = "Validación secuencia", notes = "validación de la secuencia")
+	@Autowired
+	private SecuenceResultRepository secuenceResultRepository;
+
+	@ApiOperation(value = "Validación secuencia", notes = "Validación de la secuencia")
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "OK"), @ApiResponse(code = 400, message = "Objeto JSON malformado") })
 	@CrossOrigin(origins="*")
-	@RequestMapping(value="/", method=RequestMethod.POST)
+	@RequestMapping(value="mutation/", method=RequestMethod.POST)
 	public ResponseEntity<Object> obtenerEstado(@RequestBody @Valid Secuence secuence, BindingResult bindingResult){
+
 		if (bindingResult.hasErrors()) {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
+		String secuenceDna = String.join(",", secuence.getDna());
+		List<SecuenceResult> secuencesResultStored = secuenceResultRepository.findByDna(secuenceDna);
 
-		boolean result = mutations.hasMutation(secuence.getDna());
+		boolean result;
+		if (secuencesResultStored.isEmpty()) {
+			result = mutations.hasMutation(secuence.getDna());
+			SecuenceResult secuenceResult = new SecuenceResult(secuenceDna, result);
+			secuenceResultRepository.save(secuenceResult);
+			System.out.println("stored");
+		} else {
+			result = secuencesResultStored.get(0).getResult();
+			System.out.println("readed");
+		}
 
+		return resolveSecuence(result);
+	}
+
+	private ResponseEntity<Object> resolveSecuence (boolean result) {
 		return new ResponseEntity<>(
 			result==true?
 			HttpStatus.OK:
 			HttpStatus.FORBIDDEN
 		);
+	}
+
+	@ApiOperation(value = "Estadísticas de secuencias", notes = "Estadísticas de las secuencias procesadas")
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "OK") })
+	@CrossOrigin(origins="*")
+	@RequestMapping(value="stats/", method=RequestMethod.GET)
+	public ResponseEntity<Stat> obtenerEstado(){
+		
+		int numberSecuencesClean = secuenceResultRepository.findByResult(false).size();
+		int numberSecuencesMutated = secuenceResultRepository.findByResult(true).size();
+		float ratio = numberSecuencesClean > 0 ? ((float) numberSecuencesMutated / numberSecuencesClean) : numberSecuencesMutated;
+		Stat response = new Stat(numberSecuencesMutated, numberSecuencesClean, ratio);
+
+		return new ResponseEntity<Stat> (response,HttpStatus.OK);
 	}
 }
