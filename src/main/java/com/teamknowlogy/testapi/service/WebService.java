@@ -39,7 +39,7 @@ public class WebService {
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "OK"), @ApiResponse(code = 400, message = "Objeto JSON malformado") })
 	@CrossOrigin(origins="*")
 	@RequestMapping(value="mutation/", method=RequestMethod.POST)
-	public ResponseEntity<Object> obtenerEstado(@RequestBody @Valid Secuence secuence, BindingResult bindingResult){
+	public ResponseEntity<Object> validateSecuence(@RequestBody @Valid Secuence secuence, BindingResult bindingResult){
 
 		if (bindingResult.hasErrors()) {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
@@ -73,8 +73,7 @@ public class WebService {
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "OK") })
 	@CrossOrigin(origins="*")
 	@RequestMapping(value="stats/", method=RequestMethod.GET)
-	public ResponseEntity<Stat> obtenerEstado(){
-		
+	public ResponseEntity<Stat> showStats(){
 		int numberSecuencesClean = secuenceResultRepository.findByResult(false).size();
 		int numberSecuencesMutated = secuenceResultRepository.findByResult(true).size();
 		float ratio = numberSecuencesClean > 0 ? ((float) numberSecuencesMutated / numberSecuencesClean) : numberSecuencesMutated;
