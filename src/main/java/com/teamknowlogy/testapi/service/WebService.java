@@ -41,7 +41,7 @@ public class WebService {
 	@RequestMapping(value="mutation/", method=RequestMethod.POST)
 	public ResponseEntity<Object> validateSecuence(@RequestBody @Valid Secuence secuence, BindingResult bindingResult){
 
-		if (bindingResult.hasErrors()) {
+		if (bindingResult.hasErrors() || secuence.getDna() == null) {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		}
 		String secuenceDna = String.join(",", secuence.getDna());
